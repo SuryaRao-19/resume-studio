@@ -1,0 +1,477 @@
+/* Resume Studio design system.
+   Editorial/paper theme. Georgia for body/output, Courier New for labels.
+   Light/dark via prefers-color-scheme. No shadows except input focus ring. */
+
+:root {
+  --paper: #f6f3ec;
+  --ink: #1f2620;
+  --ink-soft: #4a5147;
+  --rule: #c9c2ae;
+  --rule-strong: #9b927a;
+  --signal: #b4562b;
+  --good: #3e6b4c;
+  --good-bg: #e3eee3;
+  --bad: #a23b2e;
+  --bad-bg: #f4e1dc;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #22261f;
+    --ink: #ede8da;
+    --ink-soft: #b9b29b;
+    --rule: #454a3b;
+    --rule-strong: #5c6350;
+    --signal: #e28855;
+    --good: #8fc49e;
+    --good-bg: #25332a;
+    --bad: #e28776;
+    --bad-bg: #3a2622;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 14.5px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+}
+
+/* Meta / labels — monospace, uppercase */
+.meta,
+.label,
+.kicker,
+.tab,
+.chip {
+  font-family: "Courier New", Courier, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+
+.kicker {
+  font-size: 11px;
+  color: var(--signal);
+  margin: 0 0 0.25rem;
+}
+
+.app-title {
+  font-size: 22px;
+  font-weight: 500;
+  margin: 0 0 0.25rem;
+}
+
+.app-sub {
+  color: var(--ink-soft);
+  font-size: 13px;
+  margin: 0 0 1.5rem;
+}
+
+/* Card container */
+.card {
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: var(--paper);
+  padding: 1.5rem;
+}
+
+/* Top bar with session + nav */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+.topbar .meta {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 1.25rem;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 1.25rem;
+}
+.tab {
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--ink-soft);
+  font-size: 12px;
+  padding: 0 0 0.6rem;
+  margin-bottom: -1px;
+  cursor: pointer;
+}
+.tab:hover {
+  color: var(--ink);
+}
+.tab.active {
+  color: var(--ink);
+  border-bottom-color: var(--signal);
+}
+
+/* Section headers */
+.section-header {
+  font-size: 15px;
+  font-weight: 500;
+  margin: 0 0 0.75rem;
+}
+
+/* Forms */
+.field {
+  margin-bottom: 1rem;
+}
+.field .label {
+  display: block;
+  font-size: 11px;
+  color: var(--ink-soft);
+  margin-bottom: 0.35rem;
+}
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+@media (max-width: 640px) {
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+input[type="text"],
+input[type="email"],
+textarea,
+select {
+  width: 100%;
+  font-family: Georgia, serif;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 0.55rem 0.65rem;
+  outline: none;
+}
+textarea {
+  resize: vertical;
+  min-height: 96px;
+  line-height: 1.55;
+}
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--signal);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--signal) 22%, transparent);
+}
+
+/* Buttons */
+.btn {
+  font-family: "Courier New", Courier, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+  background: var(--ink);
+  color: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: 4px;
+  padding: 0.55rem 1rem;
+  cursor: pointer;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.btn.secondary {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--rule-strong);
+}
+.btn.danger {
+  background: transparent;
+  color: var(--bad);
+  border-color: var(--bad);
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+/* Divider between input and output */
+.divider {
+  border: none;
+  border-top: 1px solid var(--rule);
+  margin: 1.25rem 0;
+}
+
+/* Output area */
+.output {
+  white-space: pre-wrap;
+  font-family: Georgia, serif;
+  font-size: 14.5px;
+  line-height: 1.7;
+}
+
+/* Header row above an output block: label on the left, actions on the right. */
+.output-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Rendered markdown output (resume drafts, tailored summaries). */
+.output.md {
+  white-space: normal;
+}
+.output.md h1,
+.output.md h2,
+.output.md h3 {
+  font-family: "Courier New", Courier, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+  color: var(--signal);
+  margin: 1rem 0 0.35rem;
+}
+.output.md p {
+  margin: 0 0 0.6rem;
+}
+.output.md strong {
+  font-weight: 700;
+}
+.output.md ul {
+  margin: 0 0 0.75rem;
+  padding-left: 1.1rem;
+}
+.output.md li {
+  margin-bottom: 0.3rem;
+}
+.output.md > :first-child {
+  margin-top: 0;
+}
+
+/* Score display */
+.score {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.score-number {
+  font-size: 44px;
+  font-weight: 500;
+  line-height: 1;
+  min-width: 3ch;
+}
+.score-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--rule);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.score-fill {
+  height: 100%;
+  background: var(--signal);
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+.score-label {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+/* Chips */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.25rem 0 0.5rem;
+}
+.chip {
+  font-size: 11px;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+.chip.good {
+  background: var(--good-bg);
+  color: var(--good);
+  border-color: color-mix(in srgb, var(--good) 40%, transparent);
+}
+.chip.bad {
+  background: var(--bad-bg);
+  color: var(--bad);
+  border-color: color-mix(in srgb, var(--bad) 40%, transparent);
+}
+
+/* Marked lists */
+.marked-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+}
+.marked-list li {
+  position: relative;
+  padding-left: 1.1rem;
+  margin-bottom: 0.4rem;
+}
+.marked-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.marked-list.good li::before {
+  background: var(--good);
+}
+.marked-list.bad li::before {
+  background: var(--bad);
+}
+
+/* Messages */
+.msg {
+  font-size: 13px;
+  padding: 0.6rem 0.75rem;
+  border-radius: 4px;
+  margin: 0.75rem 0;
+}
+.msg.error {
+  background: var(--bad-bg);
+  color: var(--bad);
+}
+.msg.info {
+  background: var(--good-bg);
+  color: var(--good);
+}
+.loading {
+  font-family: "Courier New", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-size: 11px;
+  color: var(--ink-soft);
+  margin: 0.75rem 0;
+}
+
+/* My resumes list */
+.resume-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.resume-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+.resume-item:last-child {
+  border-bottom: none;
+}
+.resume-item .r-title {
+  font-size: 15px;
+}
+.resume-item .r-meta {
+  font-family: "Courier New", monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
+
+/* Modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--ink) 35%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.modal {
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 420px;
+}
+
+/* Before/after diff */
+.diff {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 0.5rem 0;
+  margin: 0.25rem 0 0.5rem;
+  overflow-x: auto;
+}
+.diff-line {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 0.6rem;
+  white-space: pre-wrap;
+}
+.diff-sign {
+  color: var(--ink-soft);
+  user-select: none;
+}
+.diff-add {
+  background: var(--good-bg);
+  color: var(--good);
+}
+.diff-del {
+  background: var(--bad-bg);
+  color: var(--bad);
+}
+.diff-same {
+  color: var(--ink-soft);
+}
+
+.nav-links {
+  display: flex;
+  gap: 1rem;
+}
+.linkbtn {
+  appearance: none;
+  background: none;
+  border: none;
+  font-family: "Courier New", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  padding: 0;
+}
+.linkbtn:hover {
+  color: var(--signal);
+}

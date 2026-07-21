@@ -1,0 +1,15 @@
+{
+  "name": "resume-studio-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "End-to-end tests (Playwright) for Resume Studio. Requires the full stack running: frontend :5173, backend :4001, Postgres :5433, Ollama :11434.",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "pg": "^8.13.1"
+  }
+}

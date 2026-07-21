@@ -1,0 +1,151 @@
+# Resume Studio
+
+Three AI-powered resume modes — **Build**, **Check**, **Optimize** — with a
+React frontend and an Express + Prisma backend. All Anthropic calls happen on
+the backend; the API key never reaches the browser.
+
+```
+Resume/
+  backend/    Express + TypeScript + Prisma (Postgres). Talks to Anthropic.
+  frontend/   Vite + React + TypeScript. Talks only to the backend.
+```
+
+## Prerequisites
+
+- Node.js 18+ and npm
+- A PostgreSQL database
+- An AI provider: **Ollama** (free, local, default) *or* an Anthropic API key
+
+## Zero-cost local run (Ollama + Docker Postgres)
+
+This is the default configuration — no API costs, no key required.
+
+```bash
+# 1. Postgres in Docker (free)
+docker run -d --name resume-pg --restart unless-stopped \
+  -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=resume_studio \
+  -p 5433:5432 postgres:16-alpine
+
+# 2. Ollama (free local LLM) — install from https://ollama.com, then:
+ollama serve          # if not already running as a service
+ollama pull llama3    # any chat model works; set OLLAMA_MODEL to match
+
+# 3. Backend
+cd backend
+cp .env.example .env  # defaults are already set for this setup
+npm install && npm run prisma:generate
+DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5433/resume_studio" npm run prisma:deploy
+
+# (optional, recommended) create a non-superuser role so RLS is enforced:
+docker exec -i resume-pg psql -U postgres -d resume_studio -c \
+ "CREATE ROLE resume_app LOGIN PASSWORD 'resume_app_pw';
+  GRANT USAGE ON SCHEMA public TO resume_app;
+  GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA public TO resume_app;"
+# then point DATABASE_URL in .env at resume_app@127.0.0.1:5433
+
+npm run dev           # http://localhost:4000
+
+# 4. Frontend (new terminal)
+cd frontend && cp .env.example .env
+npm install && npm run dev   # http://localhost:5173
+```
+
+To use Claude instead, set `AI_PROVIDER=anthropic` and `ANTHROPIC_API_KEY` in
+`backend/.env`. Everything else is identical.
+
+> Note: on Windows/Docker, use `127.0.0.1` (not `localhost`) in `DATABASE_URL`
+> so Node doesn't resolve to IPv6 `::1` while Docker binds IPv4.
+
+## 1. Backend
+
+```bash
+cd backend
+cp .env.example .env        # then edit .env with real values
+npm install
+npm run prisma:generate
+npm run prisma:deploy       # applies the migration incl. RLS policies
+npm run dev                 # http://localhost:4000
+```
+
+`.env` values:
+
+| Var                  | Purpose                                             |
+| -------------------- | --------------------------------------------------- |
+| `ANTHROPIC_API_KEY`  | Anthropic Messages API key (server-side only)       |
+| `DATABASE_URL`       | Postgres connection string                          |
+| `AUTH_SECRET`        | Long random string used to sign session JWTs        |
+| `RATE_LIMIT_PER_HOUR`| AI requests/hour per user/IP (default 20)           |
+| `PORT`               | Backend port (default 4000)                         |
+| `FRONTEND_ORIGIN`    | Frontend origin, for CORS + magic-link URLs         |
+| `COOKIE_SECURE`      | `true` in production (HTTPS)                         |
+
+### Row-level security
+
+The migration enables and **forces** RLS on `resumes` and `resume_reports`.
+Policies read `app.current_user_id`, which the app sets per request via
+`withUser()`. Run the app with a **non-superuser** Postgres role — superusers
+bypass RLS. App-level `user_id` filters are the primary guard; RLS is the
+second layer.
+
+### Auth (magic link)
+
+`POST /api/auth/request-link` prints the sign-in link to the backend console in
+development. To send real email, replace the `console.log` in
+`src/routes/auth.ts` with your email provider's send call — the token/link is
+already generated for you.
+
+## 2. Frontend
+
+```bash
+cd frontend
+cp .env.example .env        # set VITE_API_BASE_URL to the backend URL
+npm install
+npm run dev                 # http://localhost:5173
+```
+
+## API endpoints
+
+| Method | Path                     | Auth | Notes                                    |
+| ------ | ------------------------ | ---- | ---------------------------------------- |
+| POST   | `/api/auth/request-link` | no   | `{ email }` → magic link                 |
+| GET    | `/api/auth/verify`       | no   | `?token=` → sets session cookie          |
+| GET    | `/api/auth/me`           | yes  | current session                          |
+| POST   | `/api/auth/logout`       | no   | clears session                           |
+| POST   | `/api/build`             | yes  | `{ role, tone, history, skills, education }` → `{ resumeText }` |
+| POST   | `/api/check`             | yes  | `{ resumeText }` → score/strengths/issues/ats_flags |
+| POST   | `/api/optimize`          | yes  | `{ resumeText, jobDescription }` → match report |
+| POST   | `/api/resumes`           | yes  | save a resume                            |
+| GET    | `/api/resumes`           | yes  | light list of your resumes               |
+| GET    | `/api/resumes/:id`       | yes  | full content + latest report (404 if not yours) |
+| DELETE | `/api/resumes/:id`       | yes  | delete (404 if not yours)                |
+
+The three AI endpoints are rate limited per user/IP (`RATE_LIMIT_PER_HOUR`).
+
+## Security notes
+
+- The Anthropic key is used only in `backend/src/lib/anthropic.ts`. The frontend
+  bundle contains no key and never calls `api.anthropic.com` — verify with:
+  ```bash
+  cd frontend && npm run build
+  grep -r "ANTHROPIC_API_KEY" dist/ ; grep -r "api.anthropic.com" dist/
+  ```
+  Both greps should return nothing.
+- Ownership checks return `404` (not `403`) for resumes that don't exist *or*
+  aren't yours, so ids can't be probed.
+- Errors never leak stack traces, model output, or DB errors to the client.
+
+## Deployment
+
+Frontend and backend deploy as **separate services**, wired via env vars:
+
+- **Frontend** (static host — Vercel/Netlify/Cloudflare Pages): build with
+  `npm run build` (output in `frontend/dist/`). Set `VITE_API_BASE_URL` to the
+  deployed backend URL at build time.
+- **Backend** (Node host — Render/Fly/Railway): `npm run build` then
+  `npm run start`. Set all backend env vars; run `npm run prisma:deploy` on
+  release to apply migrations. Set `FRONTEND_ORIGIN` to the deployed frontend
+  origin and `COOKIE_SECURE=true`.
+
+Because the session cookie is cross-site in production, serve both over HTTPS.
+For a stricter setup, put both behind one domain (e.g. frontend at `/`, backend
+at `/api` via a reverse proxy) so the cookie is first-party.

@@ -1,0 +1,80 @@
+// Resume Studio — Prisma schema.
+// Three core tables per spec (users, resumes, resume_reports) plus a
+// magic-link token table required by the passwordless auth flow.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  resumes     Resume[]
+  magicTokens MagicToken[]
+
+  @@map("users")
+}
+
+model Resume {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  title      String
+  content    String
+  modeOrigin String   @map("mode_origin") // one of: build | check | optimize
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reports ResumeReport[]
+
+  @@index([userId])
+  @@map("resumes")
+}
+
+model ResumeReport {
+  id             String   @id @default(uuid()) @db.Uuid
+  resumeId       String   @map("resume_id") @db.Uuid
+  type           String // check | optimize
+  score          Int
+  reportJson     Json     @map("report_json")
+  jobDescription String?  @map("job_description")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  resume Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  @@index([resumeId])
+  @@map("resume_reports")
+}
+
+// Rate-limit events: one row per allowed AI request, keyed by user id (or IP).
+// A sliding-window count over `created_at` enforces the per-hour limit. Rows
+// outside the window are pruned opportunistically. Persisted (not in-memory) so
+// limits survive restarts and hold across multiple instances.
+model RateEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([key, createdAt])
+  @@map("rate_events")
+}
+
+// Single-use magic-link tokens. Rows are deleted once consumed or expired.
+model MagicToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  tokenHash String   @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("magic_tokens")
+}
