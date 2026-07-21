@@ -5,6 +5,7 @@
 import { env } from "../env.js";
 import { callAnthropic, callAnthropicStream, AnthropicError } from "./anthropic.js";
 import { callOllama, callOllamaStream, OllamaError } from "./ollama.js";
+import { callMock, callMockStream } from "./mock.js";
 import { parseModelJson, ReportParseError } from "./parse.js";
 
 export interface AiCallOptions {
@@ -23,6 +24,9 @@ export class AiError extends Error {}
 
 export async function callAI(opts: AiCallOptions): Promise<string> {
   try {
+    if (env.aiProvider === "mock") {
+      return await callMock(opts);
+    }
     if (env.aiProvider === "anthropic") {
       return await callAnthropic(opts);
     }
@@ -39,7 +43,9 @@ export async function callAI(opts: AiCallOptions): Promise<string> {
 // provider errors to the unified AiError like callAI does.
 export async function* callAIStream(opts: AiCallOptions): AsyncGenerator<string> {
   try {
-    if (env.aiProvider === "anthropic") {
+    if (env.aiProvider === "mock") {
+      yield* callMockStream(opts);
+    } else if (env.aiProvider === "anthropic") {
       yield* callAnthropicStream(opts);
     } else {
       yield* callOllamaStream(opts);

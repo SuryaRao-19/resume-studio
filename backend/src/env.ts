@@ -16,12 +16,13 @@ function optional(name: string, fallback: string): string {
   return value && value.trim() !== "" ? value : fallback;
 }
 
-// Which AI provider backs the three modes: "ollama" (free, local) or
-// "anthropic" (paid, Claude). Default is ollama so the app runs at zero cost.
+// Which AI provider backs the modes: "ollama" (free, local), "anthropic"
+// (paid, Claude), or "mock" (deterministic canned responses, tests/CI only).
+// Default is ollama so the app runs at zero cost.
 const aiProvider = optional("AI_PROVIDER", "ollama").toLowerCase();
 
 export const env = {
-  aiProvider: aiProvider as "ollama" | "anthropic",
+  aiProvider: aiProvider as "ollama" | "anthropic" | "mock",
   // Only required when actually using Anthropic.
   anthropicApiKey:
     aiProvider === "anthropic" ? required("ANTHROPIC_API_KEY") : (process.env.ANTHROPIC_API_KEY ?? ""),
