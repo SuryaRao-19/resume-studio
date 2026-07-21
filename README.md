@@ -1,13 +1,16 @@
 # Resume Studio
 
-Three AI-powered resume modes — **Build**, **Check**, **Optimize** — with a
-React frontend and an Express + Prisma backend. All Anthropic calls happen on
-the backend; the API key never reaches the browser.
+Four AI-powered modes — **Build** (streaming), **Check**, **Optimize** (with a
+before/after diff), and **Cover letter** — plus markdown-rendered output,
+copy-to-clipboard, edit-before-save, and client-side PDF/DOCX export. React
+frontend, Express + Prisma backend. All model calls happen on the backend; no
+API key ever reaches the browser.
 
 ```
 Resume/
-  backend/    Express + TypeScript + Prisma (Postgres). Talks to Anthropic.
+  backend/    Express + TypeScript + Prisma (Postgres). Ollama or Anthropic.
   frontend/   Vite + React + TypeScript. Talks only to the backend.
+  e2e/        Playwright end-to-end tests.
 ```
 
 ## Prerequisites
@@ -16,11 +19,16 @@ Resume/
 - A PostgreSQL database
 - An AI provider: **Ollama** (free, local, default) *or* an Anthropic API key
 
-## Zero-cost local run (Ollama + Docker Postgres)
+## Setup — zero-cost local run (Ollama + Docker Postgres)
 
-This is the default configuration — no API costs, no key required.
+This is the default configuration — no API costs, no key required. It takes you
+from a fresh clone to the app running at http://localhost:5173.
 
 ```bash
+# 0. Clone
+git clone https://github.com/SuryaRao-19/resume-studio.git
+cd resume-studio
+
 # 1. Postgres in Docker (free)
 docker run -d --name resume-pg --restart unless-stopped \
   -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=resume_studio \
@@ -55,6 +63,23 @@ To use Claude instead, set `AI_PROVIDER=anthropic` and `ANTHROPIC_API_KEY` in
 
 > Note: on Windows/Docker, use `127.0.0.1` (not `localhost`) in `DATABASE_URL`
 > so Node doesn't resolve to IPv6 `::1` while Docker binds IPv4.
+
+> Port note: the backend defaults to `4000`. If something else is using it,
+> set `PORT` in `backend/.env` and `VITE_API_BASE_URL` in `frontend/.env` to a
+> free port (e.g. `4001`).
+
+### Run the tests
+
+With the stack running (Postgres, Ollama, backend, frontend):
+
+```bash
+# Backend unit tests (Vitest) — no stack required
+cd backend && npm test
+
+# End-to-end tests (Playwright) — requires the full stack running.
+# Seeds its own magic-link token directly in Postgres, so no manual sign-in.
+cd e2e && npm install && npx playwright install chromium && npm run test:e2e
+```
 
 ## 1. Backend
 
@@ -112,9 +137,11 @@ npm run dev                 # http://localhost:5173
 | GET    | `/api/auth/me`           | yes  | current session                          |
 | POST   | `/api/auth/logout`       | no   | clears session                           |
 | POST   | `/api/build`             | yes  | `{ role, tone, history, skills, education }` → `{ resumeText }` |
+| POST   | `/api/build/stream`      | yes  | same input; streams the draft as Server-Sent Events |
 | POST   | `/api/check`             | yes  | `{ resumeText }` → score/strengths/issues/ats_flags |
-| POST   | `/api/optimize`          | yes  | `{ resumeText, jobDescription }` → match report |
-| POST   | `/api/resumes`           | yes  | save a resume                            |
+| POST   | `/api/optimize`          | yes  | `{ resumeText, jobDescription }` → match report + `tailored_resume` |
+| POST   | `/api/cover-letter`      | yes  | `{ resumeText, jobDescription, tone }` → `{ letterText }` |
+| POST   | `/api/resumes`           | yes  | save a resume (+ optional `report` for check/optimize) |
 | GET    | `/api/resumes`           | yes  | light list of your resumes               |
 | GET    | `/api/resumes/:id`       | yes  | full content + latest report (404 if not yours) |
 | DELETE | `/api/resumes/:id`       | yes  | delete (404 if not yours)                |
