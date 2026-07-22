@@ -1,5 +1,7 @@
 # Resume Studio
 
+[![CI](https://github.com/SuryaRao-19/resume-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/SuryaRao-19/resume-studio/actions/workflows/ci.yml)
+
 Four AI-powered modes — **Build** (streaming), **Check**, **Optimize** (with a
 before/after diff), and **Cover letter** — plus markdown-rendered output,
 copy-to-clipboard, edit-before-save, and client-side PDF/DOCX export. React
