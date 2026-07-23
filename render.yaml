@@ -14,7 +14,11 @@ services:
     runtime: node
     plan: free
     rootDir: backend
-    buildCommand: npm install && npm run prisma:generate && npm run build && npm run prisma:deploy
+    # NODE_ENV=production would make `npm install` skip devDependencies, but the
+    # build needs them (typescript, prisma, @types/*), so force them with
+    # --include=dev. Migrations are applied out-of-band (prisma migrate deploy
+    # against Neon), so the build only installs, generates the client, compiles.
+    buildCommand: npm install --include=dev && npm run prisma:generate && npm run build
     startCommand: npm run start
     healthCheckPath: /api/health
     envVars:
