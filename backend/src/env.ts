@@ -3,17 +3,21 @@
 
 import "dotenv/config";
 
+// Values are trimmed: dashboard copy-paste often introduces a stray leading or
+// trailing newline/space, which breaks things downstream (e.g. Prisma rejects a
+// DATABASE_URL that doesn't start exactly with "postgresql://", and a newline in
+// FRONTEND_ORIGIN makes the CORS header throw ERR_INVALID_CHAR).
 function required(name: string): string {
-  const value = process.env[name];
-  if (!value || value.trim() === "") {
+  const value = process.env[name]?.trim();
+  if (!value) {
     throw new Error(`Missing required environment variable: ${name}`);
   }
   return value;
 }
 
 function optional(name: string, fallback: string): string {
-  const value = process.env[name];
-  return value && value.trim() !== "" ? value : fallback;
+  const value = process.env[name]?.trim();
+  return value ? value : fallback;
 }
 
 // Which AI provider backs the modes: "ollama" (free, local), "openai"
