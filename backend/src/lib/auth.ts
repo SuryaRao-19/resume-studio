@@ -44,7 +44,12 @@ export function hashToken(raw: string): string {
 export const sessionCookieOptions = {
   httpOnly: true,
   secure: env.cookieSecure,
-  sameSite: "lax" as const,
+  // Production commonly serves the frontend and backend on different domains
+  // (e.g. Cloudflare Pages + Render), so the session cookie is cross-site and
+  // must be SameSite=None; Secure to be sent at all. Browsers reject
+  // SameSite=None without Secure, so only use it when COOKIE_SECURE=true;
+  // fall back to Lax for local http development.
+  sameSite: (env.cookieSecure ? "none" : "lax") as "none" | "lax",
   maxAge: SESSION_TTL_SECONDS * 1000,
   path: "/",
 };
