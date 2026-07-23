@@ -3,7 +3,7 @@
 # Set the secret env vars (marked sync:false) in the dashboard after creation:
 #   DATABASE_URL   – your Neon Postgres URL (free tier)
 #   AUTH_SECRET    – a long random string
-#   OPENAI_API_KEY – your Groq API key (free tier)
+#   OPENAI_API_KEY – your Google AI Studio (Gemini) API key (free tier)
 #   FRONTEND_ORIGIN – the deployed frontend origin (e.g. Cloudflare Pages URL)
 #
 # The frontend is a static site — deploy frontend/ on Cloudflare Pages / Vercel
@@ -23,9 +23,9 @@ services:
       - key: AI_PROVIDER
         value: openai
       - key: OPENAI_BASE_URL
-        value: https://api.groq.com/openai/v1
+        value: https://generativelanguage.googleapis.com/v1beta/openai
       - key: OPENAI_MODEL
-        value: llama-3.3-70b-versatile
+        value: gemini-2.0-flash
       - key: COOKIE_SECURE
         value: "true"
       - key: RATE_LIMIT_PER_HOUR
