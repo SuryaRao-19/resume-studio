@@ -24,8 +24,10 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      # Live with deterministic mock AI (no key needed). To switch to real AI,
+      # set AI_PROVIDER=openai and fill OPENAI_API_KEY (Gemini/Groq/OpenRouter).
       - key: AI_PROVIDER
-        value: openai
+        value: mock
       - key: OPENAI_BASE_URL
         value: https://generativelanguage.googleapis.com/v1beta/openai
       - key: OPENAI_MODEL
