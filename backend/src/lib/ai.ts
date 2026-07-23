@@ -5,6 +5,7 @@
 import { env } from "../env.js";
 import { callAnthropic, callAnthropicStream, AnthropicError } from "./anthropic.js";
 import { callOllama, callOllamaStream, OllamaError } from "./ollama.js";
+import { callOpenAI, callOpenAIStream, OpenAIError } from "./openai.js";
 import { callMock, callMockStream } from "./mock.js";
 import { parseModelJson, ReportParseError } from "./parse.js";
 
@@ -30,9 +31,16 @@ export async function callAI(opts: AiCallOptions): Promise<string> {
     if (env.aiProvider === "anthropic") {
       return await callAnthropic(opts);
     }
+    if (env.aiProvider === "openai") {
+      return await callOpenAI(opts);
+    }
     return await callOllama(opts);
   } catch (err) {
-    if (err instanceof AnthropicError || err instanceof OllamaError) {
+    if (
+      err instanceof AnthropicError ||
+      err instanceof OllamaError ||
+      err instanceof OpenAIError
+    ) {
       throw new AiError(err.message);
     }
     throw new AiError(err instanceof Error ? err.message : "Unknown AI error");
@@ -47,11 +55,17 @@ export async function* callAIStream(opts: AiCallOptions): AsyncGenerator<string>
       yield* callMockStream(opts);
     } else if (env.aiProvider === "anthropic") {
       yield* callAnthropicStream(opts);
+    } else if (env.aiProvider === "openai") {
+      yield* callOpenAIStream(opts);
     } else {
       yield* callOllamaStream(opts);
     }
   } catch (err) {
-    if (err instanceof AnthropicError || err instanceof OllamaError) {
+    if (
+      err instanceof AnthropicError ||
+      err instanceof OllamaError ||
+      err instanceof OpenAIError
+    ) {
       throw new AiError(err.message);
     }
     throw new AiError(err instanceof Error ? err.message : "Unknown AI error");

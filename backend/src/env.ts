@@ -16,18 +16,26 @@ function optional(name: string, fallback: string): string {
   return value && value.trim() !== "" ? value : fallback;
 }
 
-// Which AI provider backs the modes: "ollama" (free, local), "anthropic"
-// (paid, Claude), or "mock" (deterministic canned responses, tests/CI only).
-// Default is ollama so the app runs at zero cost.
+// Which AI provider backs the modes: "ollama" (free, local), "openai"
+// (any OpenAI-compatible endpoint — Groq/OpenRouter/Gemini free tiers, good
+// for a zero-cost hosted deploy), "anthropic" (paid, Claude), or "mock"
+// (deterministic canned responses, tests/CI only).
+// Default is ollama so the app runs at zero cost locally.
 const aiProvider = optional("AI_PROVIDER", "ollama").toLowerCase();
 
 export const env = {
-  aiProvider: aiProvider as "ollama" | "anthropic" | "mock",
+  aiProvider: aiProvider as "ollama" | "openai" | "anthropic" | "mock",
   // Only required when actually using Anthropic.
   anthropicApiKey:
     aiProvider === "anthropic" ? required("ANTHROPIC_API_KEY") : (process.env.ANTHROPIC_API_KEY ?? ""),
   ollamaBaseUrl: optional("OLLAMA_BASE_URL", "http://localhost:11434"),
   ollamaModel: optional("OLLAMA_MODEL", "llama3"),
+  // OpenAI-compatible provider (used when AI_PROVIDER=openai). Base URL and
+  // model default to Groq's free tier; the key is required only for this mode.
+  openaiApiKey:
+    aiProvider === "openai" ? required("OPENAI_API_KEY") : (process.env.OPENAI_API_KEY ?? ""),
+  openaiBaseUrl: optional("OPENAI_BASE_URL", "https://api.groq.com/openai/v1"),
+  openaiModel: optional("OPENAI_MODEL", "llama-3.3-70b-versatile"),
   databaseUrl: required("DATABASE_URL"),
   authSecret: required("AUTH_SECRET"),
   rateLimitPerHour: parseInt(optional("RATE_LIMIT_PER_HOUR", "20"), 10),

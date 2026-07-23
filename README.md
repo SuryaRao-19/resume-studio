@@ -163,7 +163,40 @@ The three AI endpoints are rate limited per user/IP (`RATE_LIMIT_PER_HOUR`).
   aren't yours, so ids can't be probed.
 - Errors never leak stack traces, model output, or DB errors to the client.
 
-## Deployment
+## Deployment — 100% free (no credit card)
+
+The whole app can run hosted at **zero cost** by swapping the local Ollama for a
+free-tier OpenAI-compatible LLM. Recommended stack:
+
+| Piece    | Host                              | Notes                                   |
+| -------- | --------------------------------- | --------------------------------------- |
+| Frontend | Cloudflare Pages (or Vercel)      | static build of `frontend/dist/`        |
+| Backend  | Render free web service           | uses `render.yaml`; ~50s cold start when idle |
+| Postgres | Neon free tier                    | copy its connection string to `DATABASE_URL` |
+| LLM      | Groq free tier (OpenAI-compatible)| set `AI_PROVIDER=openai`, `OPENAI_API_KEY` |
+
+Steps:
+
+1. **Neon** — create a free project, copy the pooled connection string.
+2. **Groq** — sign up at https://console.groq.com, create an API key (no card).
+3. **Backend on Render** — *New > Blueprint*, point at this repo (uses
+   `render.yaml`, which builds from `backend/`). Fill the secret env vars it
+   asks for: `DATABASE_URL` (Neon), `AUTH_SECRET` (long random string),
+   `OPENAI_API_KEY` (Groq), and `FRONTEND_ORIGIN` (set after step 4).
+4. **Frontend on Cloudflare Pages** — build command `npm run build`, output
+   `frontend/dist`, and set `VITE_API_BASE_URL` to the Render backend URL. Then
+   set the backend's `FRONTEND_ORIGIN` to the Pages URL and redeploy.
+
+To use a different free provider instead of Groq, just change `OPENAI_BASE_URL`
+and `OPENAI_MODEL` (OpenRouter and Gemini both expose OpenAI-compatible
+endpoints — see `backend/.env.example`).
+
+> Heads-up on free tiers: the Render backend sleeps when idle (first request
+> after a lull takes ~50s), and the free LLM has per-minute rate limits. Fine
+> for a demo/portfolio app. The magic-link sign-in still logs to the server
+> console — wire a real email sender in `src/routes/auth.ts` for public use.
+
+### Manual / other hosts
 
 Frontend and backend deploy as **separate services**, wired via env vars:
 

@@ -1,0 +1,40 @@
+# Render blueprint for the Resume Studio backend (free tier, no credit card).
+# In Render: New > Blueprint > point at this repo. It builds from backend/.
+# Set the secret env vars (marked sync:false) in the dashboard after creation:
+#   DATABASE_URL   – your Neon Postgres URL (free tier)
+#   AUTH_SECRET    – a long random string
+#   OPENAI_API_KEY – your Groq API key (free tier)
+#   FRONTEND_ORIGIN – the deployed frontend origin (e.g. Cloudflare Pages URL)
+#
+# The frontend is a static site — deploy frontend/ on Cloudflare Pages / Vercel
+# with VITE_API_BASE_URL set to this service's URL at build time.
+services:
+  - type: web
+    name: resume-studio-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && npm run prisma:generate && npm run build && npm run prisma:deploy
+    startCommand: npm run start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: AI_PROVIDER
+        value: openai
+      - key: OPENAI_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: OPENAI_MODEL
+        value: llama-3.3-70b-versatile
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: RATE_LIMIT_PER_HOUR
+        value: "20"
+      - key: DATABASE_URL
+        sync: false
+      - key: AUTH_SECRET
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: FRONTEND_ORIGIN
+        sync: false
