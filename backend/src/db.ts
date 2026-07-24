@@ -11,9 +11,19 @@ import { env } from "./env.js";
 
 // Pass the cleaned URL explicitly instead of letting Prisma read the raw
 // env("DATABASE_URL"), so a whitespace-mangled dashboard value can't break it.
-export const prisma = new PrismaClient({
-  datasources: { db: { url: env.databaseUrl } },
-});
+//
+// Cache the client on globalThis so warm serverless invocations (and dev hot
+// reloads) reuse a single instance instead of opening a fresh connection pool
+// each time, which would exhaust the database's connection limit.
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    datasources: { db: { url: env.databaseUrl } },
+  });
+
+if (!env.isProd) globalForPrisma.prisma = prisma;
 
 type TxClient = Prisma.TransactionClient;
 

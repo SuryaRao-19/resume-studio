@@ -4,6 +4,10 @@
 
 generator client {
   provider = "prisma-client-js"
+  // "native" for local dev; "rhel-openssl-3.0.x" is the Vercel serverless
+  // (AWS Lambda, OpenSSL 3) target so the query engine binary ships in the
+  // function bundle. Without it the deployed function throws at first query.
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
