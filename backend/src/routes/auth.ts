@@ -1,6 +1,6 @@
 // Auth routes: magic-link request, verify, session info, logout.
 
-import { Router } from "express";
+import { Router, type Request } from "express";
 import { prisma } from "../db.js";
 import { env } from "../env.js";
 import {
@@ -15,6 +15,21 @@ import { requireAuth } from "../middleware/auth.js";
 export const authRouter = Router();
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// The origin to build the sign-in link against. On the single-domain deploy the
+// frontend and API share a host, so derive it from the request itself — that way
+// the link points at whatever host actually served the app (Vercel prod, a
+// preview URL, or localhost) with no FRONTEND_ORIGIN needed. An explicitly
+// configured FRONTEND_ORIGIN (a split frontend/backend deploy) still wins.
+function signInBaseUrl(req: Request): string {
+  if (process.env.FRONTEND_ORIGIN?.trim()) return env.frontendOrigin;
+  const origin = req.get("origin");
+  if (origin) return origin.replace(/[^\x21-\x7E]/g, "");
+  const proto = String(req.headers["x-forwarded-proto"] ?? "").split(",")[0] || req.protocol;
+  const host = req.get("host");
+  if (host) return `${proto}://${host}`;
+  return env.frontendOrigin;
+}
 
 // POST /api/auth/request-link  { email }
 authRouter.post("/request-link", async (req, res, next) => {
@@ -36,7 +51,7 @@ authRouter.post("/request-link", async (req, res, next) => {
       data: { userId: user.id, tokenHash: hash, expiresAt },
     });
 
-    const link = `${env.frontendOrigin}/verify?token=${raw}`;
+    const link = `${signInBaseUrl(req)}/verify?token=${raw}`;
 
     // DEV: log the link. Wire a real email provider here for production.
     console.log(`\n[magic-link] Sign-in link for ${email}:\n${link}\n`);
