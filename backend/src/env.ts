@@ -40,7 +40,12 @@ export const env = {
     aiProvider === "openai" ? required("OPENAI_API_KEY") : (process.env.OPENAI_API_KEY ?? ""),
   openaiBaseUrl: optional("OPENAI_BASE_URL", "https://api.groq.com/openai/v1"),
   openaiModel: optional("OPENAI_MODEL", "llama-3.3-70b-versatile"),
-  databaseUrl: required("DATABASE_URL"),
+  // Strip ALL whitespace (a Postgres URL never contains any). A stray newline
+  // from a dashboard paste otherwise makes Prisma reject it with "the URL must
+  // start with the protocol postgresql://". This cleaned value is passed
+  // explicitly to PrismaClient in db.ts, since schema.prisma's env("DATABASE_URL")
+  // would otherwise read the raw, un-cleaned environment variable.
+  databaseUrl: required("DATABASE_URL").replace(/\s+/g, ""),
   authSecret: required("AUTH_SECRET"),
   rateLimitPerHour: parseInt(optional("RATE_LIMIT_PER_HOUR", "20"), 10),
   port: parseInt(optional("PORT", "4000"), 10),

@@ -7,8 +7,13 @@
 
 import { PrismaClient } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
+import { env } from "./env.js";
 
-export const prisma = new PrismaClient();
+// Pass the cleaned URL explicitly instead of letting Prisma read the raw
+// env("DATABASE_URL"), so a whitespace-mangled dashboard value can't break it.
+export const prisma = new PrismaClient({
+  datasources: { db: { url: env.databaseUrl } },
+});
 
 type TxClient = Prisma.TransactionClient;
 
