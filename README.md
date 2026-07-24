@@ -163,51 +163,50 @@ The three AI endpoints are rate limited per user/IP (`RATE_LIMIT_PER_HOUR`).
   aren't yours, so ids can't be probed.
 - Errors never leak stack traces, model output, or DB errors to the client.
 
-## Deployment — 100% free (no credit card)
+## Deployment — one Vercel domain, 100% free (no credit card)
 
-The whole app can run hosted at **zero cost** by swapping the local Ollama for a
-free-tier OpenAI-compatible LLM. Recommended stack:
+The frontend and the Express API deploy together as a **single Vercel project**:
+the Vite bundle is served at `/` and the API runs as a serverless function under
+`/api/*`. Because both live on the same origin there is **no CORS** and the
+session cookie is **first-party** — the two things that make a split
+frontend/backend deploy fragile. The root `vercel.json` wires it up.
 
-| Piece    | Host                              | Notes                                   |
-| -------- | --------------------------------- | --------------------------------------- |
-| Frontend | Cloudflare Pages (or Vercel)      | static build of `frontend/dist/`        |
-| Backend  | Render free web service           | uses `render.yaml`; ~50s cold start when idle |
-| Postgres | Neon free tier                    | copy its connection string to `DATABASE_URL` |
-| LLM      | Groq free tier (OpenAI-compatible)| set `AI_PROVIDER=openai`, `OPENAI_API_KEY` |
+| Piece    | Host                               | Notes                                        |
+| -------- | ---------------------------------- | -------------------------------------------- |
+| App      | Vercel (frontend static + `/api`)  | one project, driven by `vercel.json`         |
+| Postgres | Neon free tier                     | use the **pooled** connection string         |
+| LLM      | deterministic `mock` (default)     | optional: swap in a free OpenAI-compatible LLM |
 
 Steps:
 
-1. **Neon** — create a free project, copy the pooled connection string.
-2. **Groq** — sign up at https://console.groq.com, create an API key (no card).
-3. **Backend on Render** — *New > Blueprint*, point at this repo (uses
-   `render.yaml`, which builds from `backend/`). Fill the secret env vars it
-   asks for: `DATABASE_URL` (Neon), `AUTH_SECRET` (long random string),
-   `OPENAI_API_KEY` (Groq), and `FRONTEND_ORIGIN` (set after step 4).
-4. **Frontend on Cloudflare Pages** — build command `npm run build`, output
-   `frontend/dist`, and set `VITE_API_BASE_URL` to the Render backend URL. Then
-   set the backend's `FRONTEND_ORIGIN` to the Pages URL and redeploy.
+1. **Neon** — create a free project and copy the **pooled** connection string
+   (host contains `-pooler`). Apply migrations once with
+   `npm run prisma:deploy` from `backend/` against that database.
+2. **Import to Vercel** — *Add New… > Project*, pick this repo, keep the root
+   directory at the repo root and leave the framework/build fields at their
+   defaults (`vercel.json` takes over).
+3. **Set two env vars** (Production):
+   - `DATABASE_URL` — the Neon pooled string, with
+     `?sslmode=require&pgbouncer=true&connection_limit=1` appended.
+   - `AUTH_SECRET` — a long random string.
+4. **Deploy**, then check `https://<app>.vercel.app/api/health` → `{"ok":true}`
+   and run the sign-in → build flow.
 
-To use a different free provider instead of Groq, just change `OPENAI_BASE_URL`
-and `OPENAI_MODEL` (OpenRouter and Gemini both expose OpenAI-compatible
-endpoints — see `backend/.env.example`).
+AI ships as a deterministic `mock` so no LLM key is required. To enable real
+generation, add `AI_PROVIDER=openai` plus `OPENAI_API_KEY` (and optionally
+`OPENAI_BASE_URL` / `OPENAI_MODEL`) — Groq, OpenRouter, and Gemini all expose
+OpenAI-compatible endpoints (see `backend/.env.example`).
 
-> Heads-up on free tiers: the Render backend sleeps when idle (first request
-> after a lull takes ~50s), and the free LLM has per-minute rate limits. Fine
-> for a demo/portfolio app. The magic-link sign-in still logs to the server
-> console — wire a real email sender in `src/routes/auth.ts` for public use.
+> Notes: the magic-link sign-in logs to the server console — wire a real email
+> sender in `src/routes/auth.ts` for public use. Serverless has no long-lived
+> process, so the periodic token/rate-limit sweep (`lib/cleanup.ts`) only runs
+> under the long-lived `server.ts` (local/other Node hosts); add a Vercel Cron
+> if you want it in production.
 
-### Manual / other hosts
+### Other hosts (single long-lived Node process)
 
-Frontend and backend deploy as **separate services**, wired via env vars:
-
-- **Frontend** (static host — Vercel/Netlify/Cloudflare Pages): build with
-  `npm run build` (output in `frontend/dist/`). Set `VITE_API_BASE_URL` to the
-  deployed backend URL at build time.
-- **Backend** (Node host — Render/Fly/Railway): `npm run build` then
-  `npm run start`. Set all backend env vars; run `npm run prisma:deploy` on
-  release to apply migrations. Set `FRONTEND_ORIGIN` to the deployed frontend
-  origin and `COOKIE_SECURE=true`.
-
-Because the session cookie is cross-site in production, serve both over HTTPS.
-For a stricter setup, put both behind one domain (e.g. frontend at `/`, backend
-at `/api` via a reverse proxy) so the cookie is first-party.
+`server.ts` still runs the app as a normal server (`npm run build` then
+`npm run start`) if you prefer Fly/Railway/etc. In a split frontend/backend
+setup you must set `FRONTEND_ORIGIN` (enables CORS), `COOKIE_SECURE=true`, and
+`VITE_API_BASE_URL` on the frontend to the backend URL, and serve both over
+HTTPS since the cookie is then cross-site.

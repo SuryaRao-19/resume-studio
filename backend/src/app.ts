@@ -21,15 +21,19 @@ const app = express();
 // Security headers. This is a JSON API (no first-party HTML), so the strict
 // defaults are fine; disable CSP which only matters for served markup.
 app.use(helmet({ contentSecurityPolicy: false }));
-// When the frontend is served from the same origin (the Vercel single-domain
-// deploy) requests are same-origin and never trigger CORS. cors() stays as a
-// harmless no-op there and keeps cross-origin local dev (Vite :5173) working.
-app.use(
-  cors({
-    origin: env.frontendOrigin,
-    credentials: true,
-  })
-);
+// CORS is only needed when the frontend is served from a DIFFERENT origin than
+// the API (local dev on Vite :5173, or the old split Render deploy). On the
+// Vercel single-domain deploy they share an origin, so we skip CORS entirely —
+// no Access-Control-Allow-Origin header is emitted, which also means a mangled
+// FRONTEND_ORIGIN can never crash a request there.
+if (!env.isVercel) {
+  app.use(
+    cors({
+      origin: env.frontendOrigin,
+      credentials: true,
+    })
+  );
+}
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 

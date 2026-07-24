@@ -49,13 +49,18 @@ export const env = {
   authSecret: required("AUTH_SECRET"),
   rateLimitPerHour: parseInt(optional("RATE_LIMIT_PER_HOUR", "20"), 10),
   port: parseInt(optional("PORT", "4000"), 10),
-  // Strip ALL whitespace, not just the edges: a URL never contains whitespace,
-  // and an embedded newline from a dashboard paste would otherwise make the CORS
-  // Access-Control-Allow-Origin header throw ERR_INVALID_CHAR and 500 every
-  // request (including the health check).
-  frontendOrigin: optional("FRONTEND_ORIGIN", "http://localhost:5173").replace(/\s+/g, ""),
+  // Keep ONLY visible ASCII (0x21–0x7E). A URL contains nothing else, and a
+  // dashboard paste can smuggle in not just whitespace but invisible non-ASCII
+  // (zero-width space, non-breaking space, BOM) that `\s` does NOT match — any
+  // such char in the Access-Control-Allow-Origin header makes Node's setHeader
+  // throw ERR_INVALID_CHAR and 500 every request (including the health check).
+  frontendOrigin: optional("FRONTEND_ORIGIN", "http://localhost:5173").replace(/[^\x21-\x7E]/g, ""),
   cookieSecure: optional("COOKIE_SECURE", "false") === "true",
   isProd: process.env.NODE_ENV === "production",
+  // Vercel sets VERCEL=1. On the single-domain Vercel deploy the frontend and
+  // API share an origin, so CORS is unnecessary — and skipping it removes the
+  // last place a bad FRONTEND_ORIGIN could ever crash a request.
+  isVercel: !!process.env.VERCEL,
 };
 
 // Model used when AI_PROVIDER=anthropic (Claude Messages API).
